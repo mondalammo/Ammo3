@@ -3,152 +3,504 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HalalLearn Dashboard</title>
+    <title>HalalLearn</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
-
-    <!-- Firebase -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.8.0/firebase-analytics.js";
-        import { getDatabase } from "https://www.gstatic.com/firebasejs/11.8.0/firebase-database.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/11.8.0/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBLICW_iJ20RGrE2Lc3qS7LKjGk67Rf2xk",
-            authDomain: "ammo-82417.firebaseapp.com",
-            databaseURL: "https://ammo-82417-default-rtdb.firebaseio.com",
-            projectId: "ammo-82417",
-            storageBucket: "ammo-82417.firebasestorage.app",
-            messagingSenderId: "444677211598",
-            appId: "1:444677211598:web:bc0b5b5080b9ff928a979f",
-            measurementId: "G-JJM2S8NMCW"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const database = getDatabase(app);
-        const auth = getAuth(app);
-
-        // Make available globally for use in React components
-        window.firebaseApp = app;
-        window.firebaseDB = database;
-        window.firebaseAuth = auth;
-
-        console.log("Firebase initialized:", app.name);
-    </script>
-
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0a0f18; color: white; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
-        .animate-float { animation: float 3s ease-in-out infinite; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: #0a0f18; color: white; margin: 0; padding: 0; }
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .overlay { background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); }
+        .btn-green { background: #00ff88; color: #0a0f18; font-weight: 700; border-radius: 1rem; padding: 0.85rem 1.5rem; border: none; cursor: pointer; transition: transform 0.15s; }
+        .btn-green:hover { transform: scale(1.04); }
+        .btn-ghost { background: rgba(255,255,255,0.08); color: white; font-weight: 700; border-radius: 1rem; padding: 0.85rem 1.5rem; border: none; cursor: pointer; transition: background 0.15s; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.15); }
+        .btn-red { background: #ff4444; color: white; font-weight: 700; border-radius: 1rem; padding: 0.85rem 1.5rem; border: none; cursor: pointer; }
+        input[type=number], input[type=text] { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 0.75rem; padding: 0.75rem 1rem; width: 100%; font-size: 1rem; outline: none; }
+        input::placeholder { color: rgba(255,255,255,0.3); }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:1.2rem;color:#666;">Loading...</div></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.0/firebase-auth.js";
+    import { getDatabase, ref, onValue, set, get, update, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.8.0/firebase-database.js";
 
-        const Icon = ({ name, size = 20, color = "currentColor", className = "" }) => {
-            useEffect(() => { lucide.createIcons(); }, []);
-            return <i data-lucide={name} style={{ width: size, height: size, color: color }} className={className}></i>;
-        };
+    const app = initializeApp({
+        apiKey: "AIzaSyBLICW_iJ20RGrE2Lc3qS7LKjGk67Rf2xk",
+        authDomain: "ammo-82417.firebaseapp.com",
+        databaseURL: "https://ammo-82417-default-rtdb.firebaseio.com",
+        projectId: "ammo-82417",
+        storageBucket: "ammo-82417.firebasestorage.app",
+        messagingSenderId: "444677211598",
+        appId: "1:444677211598:web:bc0b5b5080b9ff928a979f"
+    });
 
-        const Dashboard = () => {
-            const [balance, setBalance] = useState(1250);
-            const [user] = useState({ nickname: "User", photo: "https://avatar.iran.liara.run/public" });
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const provider = new GoogleAuthProvider();
 
-            return (
-                <div className="max-w-md mx-auto min-h-screen p-6 space-y-8">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Good Morning,</p>
-                            <h1 className="text-2xl font-black">{user.nickname} 👋</h1>
-                        </div>
-                        <div className="w-12 h-12 rounded-2xl border-2 border-[#00ff88] p-0.5 shadow-[0_0_15px_rgba(0,255,136,0.3)]">
-                            <img src={user.photo} className="w-full h-full rounded-xl" />
-                        </div>
+    window.__fb = { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged, ref, onValue, set, get, update, push, serverTimestamp };
+    window.dispatchEvent(new Event("fbReady"));
+</script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const ADMIN_EMAIL  = "pannamandal178@gmail.com";
+const MODAL_EMAIL  = "ammo12@gmail.com";
+const ALLOWED      = [ADMIN_EMAIL, MODAL_EMAIL];
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+const fb = () => window.__fb;
+
+function getRole(email) {
+    if (email === ADMIN_EMAIL) return "admin";
+    if (email === MODAL_EMAIL) return "modal";
+    return "none";
+}
+
+// ── Login Screen ──────────────────────────────────────────────────────────────
+function LoginScreen({ onLogin, error }) {
+    const [loading, setLoading] = useState(false);
+
+    async function handleGoogle() {
+        setLoading(true);
+        try {
+            const { auth, provider, signInWithPopup } = fb();
+            const result = await signInWithPopup(auth, provider);
+            onLogin(result.user);
+        } catch(e) {
+            alert("Login failed: " + e.message);
+        }
+        setLoading(false);
+    }
+
+    return (
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"2rem"}}>
+            <div className="glass" style={{borderRadius:"2.5rem",padding:"2.5rem",maxWidth:"380px",width:"100%",textAlign:"center"}}>
+                <div style={{fontSize:"3rem",marginBottom:"1rem"}}>🕌</div>
+                <h1 style={{fontSize:"1.8rem",fontWeight:900,marginBottom:"0.25rem"}}>HalalLearn</h1>
+                <p style={{color:"#666",marginBottom:"2rem",fontSize:"0.9rem"}}>Sign in to continue</p>
+
+                {error && (
+                    <div style={{background:"rgba(255,68,68,0.15)",border:"1px solid rgba(255,68,68,0.3)",borderRadius:"1rem",padding:"0.75rem 1rem",marginBottom:"1.5rem",color:"#ff6666",fontSize:"0.85rem"}}>
+                        ⛔ {error}
                     </div>
+                )}
 
-                    <div className="glass rounded-[2.5rem] p-8 relative overflow-hidden shadow-2xl">
-                        <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-[#00ff88]/20 rounded-full blur-[40px]"></div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Icon name="coins" color="#00ff88" size={18} />
-                                <span className="text-gray-400 font-medium">Available Paise</span>
-                            </div>
-                            <div className="flex items-baseline gap-2 mb-8">
-                                <span className="text-6xl font-black italic tracking-tighter">{balance}</span>
-                                <span className="text-[#00ff88] font-bold text-xl">Paise</span>
-                            </div>
-                            <div className="flex gap-3">
-                                <button className="flex-1 py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold transition-all flex items-center justify-center gap-2">
-                                    <Icon name="plus" size={18} /> Add Paise
-                                </button>
-                                <button className="flex-1 py-4 bg-[#00ff88] text-[#0a0f18] rounded-2xl font-bold shadow-[0_10px_20px_rgba(0,255,136,0.3)] hover:scale-105 transition-all flex items-center justify-center gap-2">
-                                    <Icon name="arrow-up-right" size={18} /> Withdraw
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                <button onClick={handleGoogle} disabled={loading} style={{
+                    display:"flex",alignItems:"center",justifyContent:"center",gap:"0.75rem",
+                    width:"100%",padding:"1rem",borderRadius:"1rem",border:"1px solid rgba(255,255,255,0.15)",
+                    background:"rgba(255,255,255,0.07)",color:"white",fontWeight:700,fontSize:"1rem",cursor:"pointer"
+                }}>
+                    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                    {loading ? "Signing in..." : "Sign in with Google"}
+                </button>
 
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="glass p-4 rounded-3xl text-center">
-                            <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center mx-auto mb-2">
-                                <Icon name="play" color="#00ff88" size={18} />
-                            </div>
-                            <p className="text-[10px] text-gray-500 font-bold uppercase">Ads</p>
-                            <p className="text-lg font-black">12/25</p>
-                        </div>
-                        <div className="glass p-4 rounded-3xl text-center">
-                            <div className="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center mx-auto mb-2">
-                                <Icon name="brain" color="#b4ff39" size={18} />
-                            </div>
-                            <p className="text-[10px] text-gray-500 font-bold uppercase">Quiz</p>
-                            <p className="text-lg font-black">8/15</p>
-                        </div>
-                        <div className="glass p-4 rounded-3xl text-center">
-                            <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center mx-auto mb-2">
-                                <Icon name="users" color="#3b82f6" size={18} />
-                            </div>
-                            <p className="text-[10px] text-gray-500 font-bold uppercase">Ref</p>
-                            <p className="text-lg font-black">4</p>
-                        </div>
-                    </div>
+                <p style={{marginTop:"1.5rem",fontSize:"0.75rem",color:"#444"}}>Only authorised accounts can access this app</p>
+            </div>
+        </div>
+    );
+}
 
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-bold flex items-center gap-2">
-                            <Icon name="trending-up" color="#00ff88" /> Quick Earnings
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <button className="glass p-6 rounded-[2rem] text-left group transition-all hover:bg-white/5">
-                                <div className="w-12 h-12 bg-[#00ff88] rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:rotate-12">
-                                    <Icon name="brain" color="white" size={24} />
+// ── Access Denied ─────────────────────────────────────────────────────────────
+function AccessDenied({ user, onSignOut }) {
+    return (
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"2rem",textAlign:"center"}}>
+            <div style={{fontSize:"4rem",marginBottom:"1rem"}}>🚫</div>
+            <h2 style={{fontWeight:900,marginBottom:"0.5rem"}}>Access Denied</h2>
+            <p style={{color:"#666",marginBottom:"0.5rem"}}>This app is restricted to authorised users only.</p>
+            <p style={{color:"#444",fontSize:"0.85rem",marginBottom:"2rem"}}>{user.email}</p>
+            <button className="btn-red" onClick={onSignOut}>Sign Out</button>
+        </div>
+    );
+}
+
+// ── Admin Panel ───────────────────────────────────────────────────────────────
+function AdminPanel({ user, onSignOut }) {
+    const [users, setUsers] = useState({});
+    const [tab, setTab] = useState("users");
+    const [addAmount, setAddAmount] = useState("");
+    const [selectedUid, setSelectedUid] = useState(null);
+    const [msg, setMsg] = useState("");
+
+    useEffect(() => {
+        const { db, ref, onValue } = fb();
+        const unsub = onValue(ref(db, "users"), snap => {
+            setUsers(snap.val() || {});
+        });
+        return unsub;
+    }, []);
+
+    async function adjustBalance(uid, amount) {
+        const { db, ref, get, update } = fb();
+        const snap = await get(ref(db, `users/${uid}/balance`));
+        const current = snap.val() || 0;
+        await update(ref(db, `users/${uid}`), { balance: current + amount });
+        setMsg(`Balance updated ✅`);
+        setTimeout(() => setMsg(""), 2000);
+    }
+
+    async function resetUser(uid) {
+        if (!confirm("Reset this user's balance to 0?")) return;
+        const { db, ref, update } = fb();
+        await update(ref(db, `users/${uid}`), { balance: 0 });
+        setMsg("Balance reset ✅");
+        setTimeout(() => setMsg(""), 2000);
+    }
+
+    const userList = Object.entries(users);
+
+    return (
+        <div style={{maxWidth:"480px",margin:"0 auto",minHeight:"100vh",padding:"1.5rem"}}>
+            {/* Header */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.5rem"}}>
+                <div>
+                    <p style={{fontSize:"0.7rem",color:"#555",letterSpacing:"0.1em",fontWeight:700}}>ADMIN PANEL</p>
+                    <h1 style={{fontSize:"1.4rem",fontWeight:900,margin:0}}>👑 {user.displayName?.split(" ")[0]}</h1>
+                </div>
+                <img src={user.photoURL} style={{width:"44px",height:"44px",borderRadius:"12px",border:"2px solid #00ff88"}} />
+            </div>
+
+            {/* Tabs */}
+            <div style={{display:"flex",gap:"0.5rem",marginBottom:"1.5rem"}}>
+                {["users","stats"].map(t => (
+                    <button key={t} onClick={() => setTab(t)} style={{
+                        flex:1,padding:"0.6rem",borderRadius:"0.75rem",border:"none",cursor:"pointer",fontWeight:700,fontSize:"0.85rem",
+                        background: tab===t ? "#00ff88" : "rgba(255,255,255,0.07)",
+                        color: tab===t ? "#0a0f18" : "white"
+                    }}>{t === "users" ? "👥 Users" : "📊 Stats"}</button>
+                ))}
+            </div>
+
+            {msg && <div style={{background:"rgba(0,255,136,0.1)",border:"1px solid rgba(0,255,136,0.3)",borderRadius:"1rem",padding:"0.75rem 1rem",marginBottom:"1rem",color:"#00ff88",fontSize:"0.85rem",textAlign:"center"}}>{msg}</div>}
+
+            {tab === "users" && (
+                <div style={{display:"flex",flexDirection:"column",gap:"1rem"}}>
+                    {userList.length === 0 && <p style={{color:"#555",textAlign:"center"}}>No users yet</p>}
+                    {userList.map(([uid, u]) => (
+                        <div key={uid} className="glass" style={{borderRadius:"1.5rem",padding:"1.25rem"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:"0.75rem",marginBottom:"1rem"}}>
+                                {u.photoURL && <img src={u.photoURL} style={{width:"40px",height:"40px",borderRadius:"10px"}} />}
+                                <div style={{flex:1,minWidth:0}}>
+                                    <p style={{fontWeight:700,margin:0,fontSize:"0.95rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.displayName || "Unknown"}</p>
+                                    <p style={{color:"#555",fontSize:"0.75rem",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.email}</p>
                                 </div>
-                                <h4 className="font-bold text-lg">Math Quiz</h4>
-                                <p className="text-xs text-gray-500">Earn 10 per win</p>
-                            </button>
-                            <button className="glass p-6 rounded-[2rem] text-left group transition-all hover:bg-white/5">
-                                <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:rotate-12">
-                                    <Icon name="play" color="white" size={24} />
+                                <div style={{textAlign:"right"}}>
+                                    <span style={{color:"#00ff88",fontWeight:900,fontSize:"1.1rem"}}>{u.balance || 0}</span>
+                                    <p style={{color:"#555",fontSize:"0.7rem",margin:0}}>Paise</p>
                                 </div>
-                                <h4 className="font-bold text-lg">Video Ads</h4>
-                                <p className="text-xs text-gray-500">Earn 10 per view</p>
-                            </button>
+                            </div>
+                            <div style={{display:"flex",gap:"0.5rem",alignItems:"center"}}>
+                                <input type="number" placeholder="Amount" value={selectedUid===uid ? addAmount : ""} onChange={e => { setSelectedUid(uid); setAddAmount(e.target.value); }} style={{flex:1}} />
+                                <button className="btn-green" style={{padding:"0.6rem 1rem",borderRadius:"0.75rem",fontSize:"0.85rem"}} onClick={() => { if(!addAmount) return; adjustBalance(uid, parseInt(addAmount)); setAddAmount(""); }}>+ Add</button>
+                                <button onClick={() => resetUser(uid)} style={{background:"rgba(255,68,68,0.15)",color:"#ff6666",border:"1px solid rgba(255,68,68,0.3)",borderRadius:"0.75rem",padding:"0.6rem 0.75rem",cursor:"pointer",fontWeight:700,fontSize:"0.85rem"}}>Reset</button>
+                            </div>
                         </div>
+                    ))}
+                </div>
+            )}
+
+            {tab === "stats" && (
+                <div style={{display:"flex",flexDirection:"column",gap:"1rem"}}>
+                    <div className="glass" style={{borderRadius:"1.5rem",padding:"1.5rem",textAlign:"center"}}>
+                        <p style={{color:"#555",fontSize:"0.8rem",fontWeight:700}}>TOTAL USERS</p>
+                        <p style={{fontSize:"3rem",fontWeight:900,color:"#00ff88",margin:"0.5rem 0"}}>{userList.length}</p>
+                    </div>
+                    <div className="glass" style={{borderRadius:"1.5rem",padding:"1.5rem",textAlign:"center"}}>
+                        <p style={{color:"#555",fontSize:"0.8rem",fontWeight:700}}>TOTAL PAISE ISSUED</p>
+                        <p style={{fontSize:"3rem",fontWeight:900,color:"#b4ff39",margin:"0.5rem 0"}}>{userList.reduce((s,[,u]) => s + (u.balance||0), 0)}</p>
                     </div>
                 </div>
-            );
-        };
+            )}
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<Dashboard />);
-    </script>
+            <button className="btn-ghost" onClick={onSignOut} style={{width:"100%",marginTop:"2rem"}}>Sign Out</button>
+        </div>
+    );
+}
+
+// ── Modal Panel ───────────────────────────────────────────────────────────────
+function ModalPanel({ user, onSignOut }) {
+    const [data, setData] = useState({ balance: 0, adsWatched: 0, adsLimit: 25, quizDone: 0, quizLimit: 15, refs: 0 });
+    const [modal, setModal] = useState(null); // "addpaise" | "withdraw" | "quiz" | "video"
+    const [quizQ, setQuizQ] = useState(null);
+    const [quizAns, setQuizAns] = useState("");
+    const [quizResult, setQuizResult] = useState("");
+    const [withdrawAmt, setWithdrawAmt] = useState("");
+    const [msg, setMsg] = useState("");
+
+    const uid = user.uid;
+
+    useEffect(() => {
+        const { db, ref, onValue, set, get } = fb();
+        // Init user if new
+        get(ref(db, `users/${uid}`)).then(snap => {
+            if (!snap.exists()) {
+                set(ref(db, `users/${uid}`), {
+                    displayName: user.displayName,
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    balance: 0, adsWatched: 0, adsLimit: 25,
+                    quizDone: 0, quizLimit: 15, refs: 0
+                });
+            }
+        });
+        const unsub = onValue(ref(db, `users/${uid}`), snap => {
+            if (snap.exists()) setData(snap.val());
+        });
+        return unsub;
+    }, [uid]);
+
+    function showMsg(m) { setMsg(m); setTimeout(() => setMsg(""), 2500); }
+
+    async function watchAd() {
+        if (data.adsWatched >= data.adsLimit) { showMsg("Daily ad limit reached!"); return; }
+        const { db, ref, update } = fb();
+        await update(ref(db, `users/${uid}`), {
+            balance: (data.balance || 0) + 10,
+            adsWatched: (data.adsWatched || 0) + 1
+        });
+        showMsg("🎉 +10 Paise earned!");
+        setModal(null);
+    }
+
+    function startQuiz() {
+        if (data.quizDone >= data.quizLimit) { showMsg("Daily quiz limit reached!"); return; }
+        const a = Math.floor(Math.random()*20)+1;
+        const b = Math.floor(Math.random()*20)+1;
+        const ops = ["+","-","×"];
+        const op = ops[Math.floor(Math.random()*3)];
+        let ans;
+        if (op==="+") ans = a+b;
+        else if (op==="-") ans = a-b;
+        else ans = a*b;
+        setQuizQ({ q:`${a} ${op} ${b} = ?`, ans });
+        setQuizAns("");
+        setQuizResult("");
+        setModal("quiz");
+    }
+
+    async function submitQuiz() {
+        if (parseInt(quizAns) === quizQ.ans) {
+            const { db, ref, update } = fb();
+            await update(ref(db, `users/${uid}`), {
+                balance: (data.balance||0) + 10,
+                quizDone: (data.quizDone||0) + 1
+            });
+            setQuizResult("✅ Correct! +10 Paise");
+        } else {
+            setQuizResult(`❌ Wrong! Answer was ${quizQ.ans}`);
+        }
+    }
+
+    async function requestWithdraw() {
+        const amt = parseInt(withdrawAmt);
+        if (!amt || amt <= 0) { showMsg("Enter a valid amount"); return; }
+        if (amt > (data.balance||0)) { showMsg("Insufficient balance"); return; }
+        const { db, ref, update, push, serverTimestamp } = fb();
+        await push(ref(db, `withdrawals`), {
+            uid, email: user.email, name: user.displayName,
+            amount: amt, status: "pending", time: Date.now()
+        });
+        await update(ref(db, `users/${uid}`), { balance: (data.balance||0) - amt });
+        showMsg(`✅ Withdraw request sent for ${amt} Paise`);
+        setModal(null);
+        setWithdrawAmt("");
+    }
+
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
+
+    return (
+        <div style={{maxWidth:"420px",margin:"0 auto",minHeight:"100vh",padding:"1.5rem 1.25rem"}}>
+
+            {/* Header */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.75rem"}}>
+                <div>
+                    <p style={{fontSize:"0.65rem",color:"#555",letterSpacing:"0.12em",fontWeight:700,textTransform:"uppercase"}}>{greeting},</p>
+                    <h1 style={{fontSize:"1.6rem",fontWeight:900,margin:0}}>{user.displayName?.split(" ")[0]} 👋</h1>
+                </div>
+                <div style={{position:"relative"}}>
+                    <img src={user.photoURL} style={{width:"46px",height:"46px",borderRadius:"14px",border:"2px solid #00ff88",display:"block"}} />
+                    <button onClick={onSignOut} title="Sign out" style={{position:"absolute",top:"-6px",right:"-6px",background:"#ff4444",border:"none",borderRadius:"50%",width:"18px",height:"18px",color:"white",fontSize:"10px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900}}>×</button>
+                </div>
+            </div>
+
+            {/* Toast */}
+            {msg && <div style={{background:"rgba(0,255,136,0.12)",border:"1px solid rgba(0,255,136,0.3)",borderRadius:"1rem",padding:"0.75rem 1rem",marginBottom:"1rem",color:"#00ff88",fontSize:"0.85rem",textAlign:"center"}}>{msg}</div>}
+
+            {/* Balance Card */}
+            <div className="glass" style={{borderRadius:"2.5rem",padding:"2rem",marginBottom:"1.25rem",position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:"-20%",right:"-10%",width:"120px",height:"120px",background:"rgba(0,255,136,0.15)",borderRadius:"50%",filter:"blur(40px)"}} />
+                <div style={{position:"relative"}}>
+                    <p style={{color:"#555",fontSize:"0.85rem",marginBottom:"0.5rem",fontWeight:600}}>💰 Available Paise</p>
+                    <div style={{display:"flex",alignItems:"baseline",gap:"0.5rem",marginBottom:"1.75rem"}}>
+                        <span style={{fontSize:"4rem",fontWeight:900,fontStyle:"italic",lineHeight:1}}>{data.balance || 0}</span>
+                        <span style={{color:"#00ff88",fontWeight:700,fontSize:"1.2rem"}}>Paise</span>
+                    </div>
+                    <div style={{display:"flex",gap:"0.75rem"}}>
+                        <button className="btn-ghost" style={{flex:1}} onClick={() => setModal("addpaise")}>+ Add Paise</button>
+                        <button className="btn-green" style={{flex:1}} onClick={() => setModal("withdraw")}>↗ Withdraw</button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Stats */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.75rem",marginBottom:"1.25rem"}}>
+                {[
+                    { label:"ADS", val:`${data.adsWatched||0}/${data.adsLimit||25}`, color:"#00ff88" },
+                    { label:"QUIZ", val:`${data.quizDone||0}/${data.quizLimit||15}`, color:"#b4ff39" },
+                    { label:"REF",  val:data.refs||0, color:"#3b82f6" }
+                ].map(s => (
+                    <div key={s.label} className="glass" style={{borderRadius:"1.5rem",padding:"1rem",textAlign:"center"}}>
+                        <p style={{fontSize:"0.6rem",color:"#555",fontWeight:700,letterSpacing:"0.08em",margin:"0 0 0.4rem"}}>{s.label}</p>
+                        <p style={{fontSize:"1.1rem",fontWeight:900,color:s.color,margin:0}}>{s.val}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Quick Earnings */}
+            <p style={{fontWeight:700,fontSize:"1rem",marginBottom:"0.75rem"}}>⚡ Quick Earnings</p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem",marginBottom:"2rem"}}>
+                <button className="glass" onClick={startQuiz} style={{borderRadius:"2rem",padding:"1.5rem",textAlign:"left",border:"1px solid rgba(255,255,255,0.1)",cursor:"pointer",transition:"background 0.15s"}}
+                    onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,0.08)"}
+                    onMouseOut={e=>e.currentTarget.style.background=""}>
+                    <div style={{width:"48px",height:"48px",background:"#00ff88",borderRadius:"14px",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:"1rem",fontSize:"1.4rem"}}>🧠</div>
+                    <p style={{fontWeight:700,margin:"0 0 0.25rem",color:"white"}}>Math Quiz</p>
+                    <p style={{fontSize:"0.75rem",color:"#555",margin:0}}>Earn 10 per win</p>
+                </button>
+                <button className="glass" onClick={() => setModal("video")} style={{borderRadius:"2rem",padding:"1.5rem",textAlign:"left",border:"1px solid rgba(255,255,255,0.1)",cursor:"pointer",transition:"background 0.15s"}}
+                    onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,0.08)"}
+                    onMouseOut={e=>e.currentTarget.style.background=""}>
+                    <div style={{width:"48px",height:"48px",background:"#3b82f6",borderRadius:"14px",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:"1rem",fontSize:"1.4rem"}}>▶️</div>
+                    <p style={{fontWeight:700,margin:"0 0 0.25rem",color:"white"}}>Video Ads</p>
+                    <p style={{fontSize:"0.75rem",color:"#555",margin:0}}>Earn 10 per view</p>
+                </button>
+            </div>
+
+            {/* ── Modals ── */}
+
+            {/* Add Paise info */}
+            {modal === "addpaise" && (
+                <ModalWrap title="Add Paise" onClose={() => setModal(null)}>
+                    <p style={{color:"#888",textAlign:"center",marginBottom:"1.5rem",fontSize:"0.9rem"}}>You can earn Paise by watching ads or completing quizzes. Direct top-up is managed by admin.</p>
+                    <button className="btn-green" style={{width:"100%"}} onClick={() => setModal(null)}>Got it</button>
+                </ModalWrap>
+            )}
+
+            {/* Withdraw */}
+            {modal === "withdraw" && (
+                <ModalWrap title="Withdraw Paise" onClose={() => setModal(null)}>
+                    <p style={{color:"#555",fontSize:"0.85rem",marginBottom:"1rem"}}>Balance: <strong style={{color:"#00ff88"}}>{data.balance||0} Paise</strong></p>
+                    <input type="number" placeholder="Enter amount" value={withdrawAmt} onChange={e=>setWithdrawAmt(e.target.value)} style={{marginBottom:"1rem"}} />
+                    <button className="btn-green" style={{width:"100%"}} onClick={requestWithdraw}>Request Withdraw</button>
+                </ModalWrap>
+            )}
+
+            {/* Video Ad */}
+            {modal === "video" && (
+                <ModalWrap title="Watch Ad" onClose={() => setModal(null)}>
+                    <div style={{background:"#111",borderRadius:"1rem",height:"140px",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:"1.25rem",fontSize:"2rem"}}>📺</div>
+                    <p style={{color:"#888",fontSize:"0.85rem",textAlign:"center",marginBottom:"1.25rem"}}>Watch this ad to earn <strong style={{color:"#00ff88"}}>10 Paise</strong><br/>({data.adsWatched||0}/{data.adsLimit||25} today)</p>
+                    <button className="btn-green" style={{width:"100%"}} onClick={watchAd}>✅ Claim 10 Paise</button>
+                </ModalWrap>
+            )}
+
+            {/* Quiz */}
+            {modal === "quiz" && quizQ && (
+                <ModalWrap title="Math Quiz" onClose={() => { setModal(null); setQuizResult(""); }}>
+                    <div style={{background:"rgba(0,255,136,0.07)",borderRadius:"1.5rem",padding:"1.5rem",textAlign:"center",marginBottom:"1.25rem"}}>
+                        <p style={{fontSize:"2rem",fontWeight:900,color:"#00ff88",margin:0}}>{quizQ.q}</p>
+                    </div>
+                    {!quizResult ? (
+                        <>
+                            <input type="number" placeholder="Your answer" value={quizAns} onChange={e=>setQuizAns(e.target.value)} style={{marginBottom:"1rem"}} />
+                            <button className="btn-green" style={{width:"100%"}} onClick={submitQuiz}>Submit</button>
+                        </>
+                    ) : (
+                        <>
+                            <p style={{textAlign:"center",fontSize:"1.1rem",fontWeight:700,marginBottom:"1rem",color: quizResult.startsWith("✅") ? "#00ff88" : "#ff6666"}}>{quizResult}</p>
+                            <div style={{display:"flex",gap:"0.75rem"}}>
+                                <button className="btn-ghost" style={{flex:1}} onClick={() => { setModal(null); setQuizResult(""); }}>Close</button>
+                                <button className="btn-green" style={{flex:1}} onClick={startQuiz}>Next</button>
+                            </div>
+                        </>
+                    )}
+                </ModalWrap>
+            )}
+        </div>
+    );
+}
+
+// ── Modal Wrapper ─────────────────────────────────────────────────────────────
+function ModalWrap({ title, onClose, children }) {
+    return (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",zIndex:100,display:"flex",alignItems:"flex-end",justifyContent:"center",padding:"1rem"}}>
+            <div className="glass" style={{borderRadius:"2rem",padding:"1.75rem",width:"100%",maxWidth:"400px"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.25rem"}}>
+                    <h3 style={{margin:0,fontWeight:900,fontSize:"1.1rem"}}>{title}</h3>
+                    <button onClick={onClose} style={{background:"rgba(255,255,255,0.1)",border:"none",color:"white",borderRadius:"50%",width:"32px",height:"32px",cursor:"pointer",fontSize:"1rem",fontWeight:700}}>×</button>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
+}
+
+// ── App Root ──────────────────────────────────────────────────────────────────
+function App() {
+    const [fbReady, setFbReady] = useState(!!window.__fb);
+    const [user, setUser] = useState(null);
+    const [authChecked, setAuthChecked] = useState(false);
+    const [authError, setAuthError] = useState("");
+
+    useEffect(() => {
+        if (!fbReady) {
+            window.addEventListener("fbReady", () => setFbReady(true), { once: true });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!fbReady) return;
+        const { auth, onAuthStateChanged } = fb();
+        return onAuthStateChanged(auth, u => {
+            setUser(u);
+            setAuthChecked(true);
+        });
+    }, [fbReady]);
+
+    function handleLogin(u) {
+        if (!ALLOWED.includes(u.email)) {
+            const { auth, signOut } = fb();
+            signOut(auth);
+            setAuthError(`Access denied for ${u.email}`);
+            setUser(null);
+        }
+    }
+
+    function handleSignOut() {
+        const { auth, signOut } = fb();
+        signOut(auth);
+        setAuthError("");
+    }
+
+    if (!fbReady || !authChecked) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",color:"#555"}}>Loading...</div>;
+
+    if (!user) return <LoginScreen onLogin={handleLogin} error={authError} />;
+
+    const role = getRole(user.email);
+    if (role === "none") return <AccessDenied user={user} onSignOut={handleSignOut} />;
+    if (role === "admin") return <AdminPanel user={user} onSignOut={handleSignOut} />;
+    return <ModalPanel user={user} onSignOut={handleSignOut} />;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
 </body>
 </html>
