@@ -52,17 +52,14 @@
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
-const ADMIN_EMAIL  = "pannamandal178@gmail.com";
-const MODAL_EMAIL  = "ammo12@gmail.com";
-const ALLOWED      = [ADMIN_EMAIL, MODAL_EMAIL];
+const ADMIN_EMAILS = ["pannamandal178@gmail.com", "mondalammo12@gmail.com"];
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fb = () => window.__fb;
 
 function getRole(email) {
-    if (email === ADMIN_EMAIL) return "admin";
-    if (email === MODAL_EMAIL) return "modal";
-    return "none";
+    if (ADMIN_EMAILS.includes(email)) return "admin";
+    return "user";
 }
 
 // ── Login Screen ──────────────────────────────────────────────────────────────
@@ -476,12 +473,7 @@ function App() {
     }, [fbReady]);
 
     function handleLogin(u) {
-        if (!ALLOWED.includes(u.email)) {
-            const { auth, signOut } = fb();
-            signOut(auth);
-            setAuthError(`Access denied for ${u.email}`);
-            setUser(null);
-        }
+        // All Google accounts are welcome - admins get admin panel, others get user dashboard
     }
 
     function handleSignOut() {
@@ -495,7 +487,6 @@ function App() {
     if (!user) return <LoginScreen onLogin={handleLogin} error={authError} />;
 
     const role = getRole(user.email);
-    if (role === "none") return <AccessDenied user={user} onSignOut={handleSignOut} />;
     if (role === "admin") return <AdminPanel user={user} onSignOut={handleSignOut} />;
     return <ModalPanel user={user} onSignOut={handleSignOut} />;
 }
